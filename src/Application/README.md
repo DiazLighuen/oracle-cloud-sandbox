@@ -1,0 +1,1 @@
+Contains Use Cases and Input/Output Ports (Interfaces). Orchestrates the domain logic.

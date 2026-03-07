@@ -1,0 +1,24 @@
+name: Deploy to Oracle
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: SSH and Deploy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd ~/oracle-cloud-sandbox || git clone git@github.com:DiazLighuen/oracle-cloud-sandbox.git ~/oracle-cloud-sandbox
+            cd ~/oracle-cloud-sandbox
+            git pull origin main
+            docker compose up -d --build

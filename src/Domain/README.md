@@ -1,0 +1,1 @@
+Contains Business Logic, Entities, and Value Objects. No dependencies on external frameworks or databases allowed.

@@ -1,0 +1,1 @@
+Contains Adapters. Concrete implementations for PostgreSQL, external APIs, and Framework-specific code.
