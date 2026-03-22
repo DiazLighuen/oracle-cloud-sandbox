@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "oracle-cloud-sandbox",
+      "runtimeExecutable": "docker-compose",
+      "runtimeArgs": ["up", "--build"],
+      "port": 8080
+    }
+  ]
+}
