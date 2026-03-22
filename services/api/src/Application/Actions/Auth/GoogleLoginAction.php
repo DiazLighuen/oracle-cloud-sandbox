@@ -11,9 +11,9 @@ class GoogleLoginAction {
     public function __construct(private Client $googleClient) {}
 
     public function __invoke(Request $request, Response $response): Response {
+        $this->googleClient->setPrompt('select_account');
         $authUrl = $this->googleClient->createAuthUrl();
-        
-        // Redirigir al usuario a Google
+
         return $response
             ->withHeader('Location', $authUrl)
             ->withStatus(302);
