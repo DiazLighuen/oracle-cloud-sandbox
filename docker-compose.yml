@@ -9,7 +9,8 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+      - ./docker/postgres/migrate.sql:/docker-entrypoint-initdb.d/02-migrate.sql
     deploy:
       resources:
         limits:
@@ -69,10 +70,6 @@ services:
       - ./certbot/www:/var/www/certbot
     # Renews certificates twice a day; exits immediately if nothing to renew
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --quiet; sleep 12h & wait $${!}; done'"
-    deploy:
-      resources:
-        limits:
-          memory: 32M
 
   notifications:
     build:

@@ -77,12 +77,18 @@ switch ($command) {
             echo "Uso: whitelist.php grant-admin <email>\n";
             exit(1);
         }
-        $stmt = $pdo->prepare('UPDATE users SET is_admin = TRUE WHERE email = :email');
-        $stmt->execute(['email' => $email]);
-        if ($stmt->rowCount() > 0) {
+        $stmt = $pdo->prepare(
+            'INSERT INTO users (id, email, is_admin) VALUES (:id, :email, TRUE)
+             ON CONFLICT (email) DO UPDATE SET is_admin = TRUE'
+        );
+        $stmt->execute(['id' => Uuid::uuid4()->toString(), 'email' => $email]);
+        $existed = $pdo->prepare('SELECT name FROM users WHERE email = :email');
+        $existed->execute(['email' => $email]);
+        $user = $existed->fetch();
+        if ($user && $user['name']) {
             echo "OK: $email ahora es admin.\n";
         } else {
-            echo "WARN: $email no encontrado.\n";
+            echo "OK: $email creado y marcado como admin (completará su perfil al primer login).\n";
         }
         break;
 
@@ -96,7 +102,7 @@ switch ($command) {
         if ($stmt->rowCount() > 0) {
             echo "OK: $email ya no es admin.\n";
         } else {
-            echo "WARN: $email no encontrado.\n";
+            echo "WARN: $email no encontrado. Usá 'add' primero si querés registrarlo sin admin.\n";
         }
         break;
 
