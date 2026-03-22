@@ -1,0 +1,37 @@
+# Loaded automatically by Docker Compose in local development.
+# In production this file does not exist — docker-compose.yml is used alone.
+#
+# Hot-reload strategy per service:
+#   app           — PHP-FPM reads files on every request; bind-mount is enough.
+#                   vendor/ is kept in a named volume seeded from the image so
+#                   it survives the bind-mount without a local `composer install`.
+#   notifications — tsx watch re-compiles on every .ts save.
+#   youtube       — uvicorn --reload restarts on every .py save.
+#   nginx         — bind-mount exposes the api public/ dir for static file serving.
+
+services:
+  app:
+    volumes:
+      - ./services/api:/var/www/html
+      - vendor_data:/var/www/html/vendor   # preserves vendor/ from the image
+
+  nginx:
+    volumes:
+      - ./services/api:/var/www/html       # needed for try_files / static assets
+
+  notifications:
+    build:
+      target: dev
+    volumes:
+      - ./services/notifications/src:/app/src
+    command: npm run dev
+
+  youtube:
+    build:
+      target: dev
+    volumes:
+      - ./services/youtube/app:/app/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+volumes:
+  vendor_data:
