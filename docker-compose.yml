@@ -9,45 +9,109 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     deploy:
       resources:
         limits:
-          memory: 200M 
+          memory: 96M
 
   app:
-    build: 
-      context: .
-      dockerfile: ./docker/php/Dockerfile
+    build:
+      context: ./services/api
+      dockerfile: Dockerfile
     container_name: php_app
     restart: always
     volumes:
-      - .:/var/www/html
+      - ./services/api:/var/www/html
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     depends_on:
       - db
     deploy:
       resources:
         limits:
-          memory: 256M
+          memory: 96M
     environment:
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_REDIRECT_URL: ${GOOGLE_REDIRECT_URL}
+      GOOGLE_YOUTUBE_REDIRECT_URL: ${GOOGLE_YOUTUBE_REDIRECT_URL}
+      GOOGLE_IOS_CLIENT_ID: ${GOOGLE_IOS_CLIENT_ID}
+      JWT_SECRET: ${JWT_SECRET}
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
+      DB_HOST: db
 
   nginx:
     image: nginx:alpine
     container_name: nginx_server
     restart: always
     ports:
-      - "${APP_PORT:-80}:80"
+      - "${HTTP_PORT:-8080}:80"
+      - "443:443"
     volumes:
-      - .:/var/www/html
-      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - ./services/api:/var/www/html
+      - ${NGINX_CONF_FILE:-./docker/nginx/local.conf}:/etc/nginx/conf.d/default.conf:ro
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
     depends_on:
       - app
+      - notifications
+      - youtube
     deploy:
       resources:
         limits:
-          memory: 128M
+          memory: 48M
+
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    # Renews certificates twice a day; exits immediately if nothing to renew
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --quiet; sleep 12h & wait $${!}; done'"
+    deploy:
+      resources:
+        limits:
+          memory: 32M
+
+  notifications:
+    build:
+      context: ./services/notifications
+      dockerfile: Dockerfile
+    container_name: notifications_svc
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - db
+    environment:
+      JWT_SECRET: ${JWT_SECRET}
+      PORT: 3000
+      DB_HOST: db
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+
+  youtube:
+    build:
+      context: ./services/youtube
+      dockerfile: Dockerfile
+    container_name: youtube_svc
+    restart: unless-stopped
+    environment:
+      JWT_SECRET: ${JWT_SECRET}
+    volumes:
+      - ./cookies:/cookies:ro
+    deploy:
+      resources:
+        limits:
+          memory: 320M
 
 volumes:
   postgres_data:

@@ -21,4 +21,6 @@ jobs:
             cd ~/oracle-cloud-sandbox || git clone git@github.com:DiazLighuen/oracle-cloud-sandbox.git ~/oracle-cloud-sandbox
             cd ~/oracle-cloud-sandbox
             git pull origin main
+            mkdir -p cookies
             docker compose up -d --build
+            docker compose exec -T db psql -U $(grep DB_USER .env | cut -d= -f2) $(grep DB_NAME .env | cut -d= -f2) < docker/postgres/migrate.sql
