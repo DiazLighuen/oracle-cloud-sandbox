@@ -21,15 +21,16 @@ logger = logging.getLogger(__name__)
 _COOKIES_PATH = "/cookies/youtube.txt"
 
 
-_PERMISSIVE_SELECTOR = "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best"
+# No ffmpeg in the server image — never use merge selectors (bestvideo+bestaudio).
+# Single-format selectors always resolve without external tools.
+_PERMISSIVE_SELECTOR = "best[ext=mp4]/best[ext=webm]/best"
 
 
 def _format_selector(quality: str | None) -> str:
-    """Build a yt-dlp format selector with quality preference and permissive fallback.
+    """Build a yt-dlp format selector for a server without ffmpeg.
 
-    Chain: quality-restricted (mp4 merge → muxed mp4 → muxed any)
-           → unconstrained permissive fallback (always resolves for available videos).
-    Without ffmpeg the bestvideo+bestaudio legs are skipped automatically.
+    Prefers the requested quality height when provided, then falls back to
+    the permissive selector so a stream is always returned for available videos.
     """
     if quality:
         import re
@@ -37,8 +38,8 @@ def _format_selector(quality: str | None) -> str:
         if m:
             h = m.group(1)
             return (
-                f"bestvideo[height<={h}][ext=mp4]+bestaudio[ext=m4a]"
-                f"/best[height<={h}][ext=mp4]"
+                f"best[height<={h}][ext=mp4]"
+                f"/best[height<={h}][ext=webm]"
                 f"/best[height<={h}]"
                 f"/{_PERMISSIVE_SELECTOR}"
             )
