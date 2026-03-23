@@ -3,7 +3,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from starlette.background import BackgroundTask
 
-from app import cache, quota
+from app import cache, cookies, quota
 from app.auth import verify_jwt
 from app.clients import invidious, youtube as yt_client
 
@@ -205,4 +205,4 @@ async def quota_status():
 
 @app.get("/health")
 async def health():
-    return {"status": "ok"}
+    return {"status": "ok", "cookies": cookies.status()}
