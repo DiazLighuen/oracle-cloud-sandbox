@@ -24,10 +24,16 @@ if [ -f "$ROOT/.env" ]; then
 fi
 
 # ── Config ────────────────────────────────────────────────────────────────────
+SSH_KEY="$ROOT/../keys/ssh-oracle-docker.key"
 HOST="${ORACLE_HOST:?ORACLE_HOST is not set. Add it to .env or export it. Example: ubuntu@1.2.3.4}"
 REMOTE_DIR="${ORACLE_PROJECT_PATH:-~/oracle-cloud-sandbox}/cookies"
 REMOTE_PATH="$REMOTE_DIR/youtube.txt"
 LOCAL="${1:-$HOME/Downloads/youtube.txt}"
+
+if [ ! -f "$SSH_KEY" ]; then
+    echo "ERROR: SSH key not found: $SSH_KEY"
+    exit 1
+fi
 
 # ── Validate ──────────────────────────────────────────────────────────────────
 if [ ! -f "$LOCAL" ]; then
@@ -43,8 +49,8 @@ fi
 
 # ── Upload ────────────────────────────────────────────────────────────────────
 echo "==> Uploading cookies to $HOST..."
-ssh "$HOST" "mkdir -p $REMOTE_DIR"
-scp "$LOCAL" "$HOST:$REMOTE_PATH"
+ssh -i "$SSH_KEY" "$HOST" "mkdir -p $REMOTE_DIR"
+scp -i "$SSH_KEY" "$LOCAL" "$HOST:$REMOTE_PATH"
 
 echo ""
 echo "✓ Cookies uploaded to $HOST:$REMOTE_PATH"
@@ -72,4 +78,4 @@ else:
 fi
 
 echo "Tip: run the following anytime to check cookie freshness:"
-echo "  ssh $HOST 'docker exec youtube_svc curl -s localhost:8000/health'"
+echo "  ssh -i $SSH_KEY $HOST 'docker exec youtube_svc curl -s localhost:8000/health'"
