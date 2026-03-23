@@ -12,5 +12,19 @@
       "MKDIR",
       "Bash(*)"
     ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.command' | grep -qE '^git push|^ssh ' && echo '{\"decision\":\"block\",\"reason\":\"BLOQUEADO: git push y ssh están prohibidos en este proyecto. El deploy lo ejecuta el usuario manualmente.\"}' || true",
+            "statusMessage": "Verificando comando..."
+          }
+        ]
+      }
+    ]
   }
 }

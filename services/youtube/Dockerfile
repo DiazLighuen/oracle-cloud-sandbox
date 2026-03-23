@@ -2,6 +2,10 @@ FROM python:3.12-slim AS base
 
 WORKDIR /app
 
+# Node.js is required by yt-dlp to solve YouTube's n-parameter challenge.
+# Without it, signature solving fails and no video formats are available.
+RUN apt-get update && apt-get install -y --no-install-recommends nodejs && rm -rf /var/lib/apt/lists/*
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 

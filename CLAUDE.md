@@ -1,5 +1,10 @@
 # oracle-cloud-sandbox
 
+> ## ⛔ REGLAS ABSOLUTAS — SIN EXCEPCIONES
+> **NUNCA hacer `git push`** — ni a main, ni a ninguna rama, ni bajo ninguna circunstancia.
+> **NUNCA conectarse por SSH** al servidor Oracle ni a ningún host remoto.
+> El deploy siempre lo ejecuta el usuario. Claude solo escribe código local.
+
 Multi-service platform deployed on Oracle Cloud. Centralized authentication via Google OAuth 2.0 + JWT.
 
 ## Stack
