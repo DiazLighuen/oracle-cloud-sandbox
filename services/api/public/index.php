@@ -7,6 +7,7 @@ use App\Application\Actions\Auth\GoogleCallbackAction;
 use App\Application\Actions\Auth\MobileAuthAction;
 use App\Application\Actions\Auth\GoogleYouTubeAuthAction;
 use App\Application\Actions\Auth\GoogleYouTubeCallbackAction;
+use App\Application\Actions\Auth\MobileYouTubeAuthAction;
 use App\Application\Actions\Dashboard\DashboardAction;
 use App\Application\Actions\Dashboard\GetContainersAction;
 use App\Application\Actions\Dashboard\YouTubeAction;
@@ -65,6 +66,7 @@ $app->group('/auth', function ($group) {
 // the callback is public (Google redirects back after consent).
 $app->get('/auth/youtube', GoogleYouTubeAuthAction::class)->add(JwtMiddleware::class);
 $app->get('/auth/youtube/callback', GoogleYouTubeCallbackAction::class);
+$app->post('/auth/youtube/mobile', MobileYouTubeAuthAction::class)->add(JwtMiddleware::class);
 
 $app->get('/dashboard', DashboardAction::class)->add(AdminMiddleware::class)->add(JwtMiddleware::class);
 $app->get('/users', UsersAction::class)->add(AdminMiddleware::class)->add(JwtMiddleware::class);

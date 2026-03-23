@@ -147,8 +147,18 @@ async def stream_video(
     if stream_url is None:
         streams = await invidious.get_streams(video_id)
         candidates = streams.get("format_streams", [])
+
+        # Fallback to best video-only stream if no muxed streams available.
+        # YouTube is phasing out muxed streams; video-only is a last resort
+        # (no audio) until a proper mux solution is in place.
+        if not candidates:
+            candidates = [
+                {"url": s["url"], "quality": s.get("quality", ""), "ext": s.get("ext", "")}
+                for s in streams.get("video_streams", [])
+            ]
         if not candidates:
             raise HTTPException(status_code=404, detail="No playable stream found")
+
         if quality:
             stream_url = next(
                 (s["url"] for s in candidates if quality in s.get("quality", "")),
