@@ -30,6 +30,7 @@ async def get_streams(video_id: str) -> dict:
         "--quiet",
         "--no-warnings",
         "--extractor-args", "youtube:player_client=ios,android,web",
+        "--format", "bestvideo*+bestaudio/bestvideo/best",
     ]
     if os.path.exists(_COOKIES_PATH):
         cmd += ["--cookies", _COOKIES_PATH]
