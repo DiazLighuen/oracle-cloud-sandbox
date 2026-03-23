@@ -3,4 +3,5 @@ vendor/
 node_modules/
 .DS_Store
 cookies/
+scripts/upload-cookies.sh
 docker-compose.override.yml
