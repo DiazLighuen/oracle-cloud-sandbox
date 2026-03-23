@@ -157,7 +157,11 @@ async def stream_video(
                 for s in streams.get("video_streams", [])
             ]
         if not candidates:
-            raise HTTPException(status_code=404, detail="No playable stream found")
+            audio_count = len(streams.get("audio_streams", []))
+            raise HTTPException(
+                status_code=404,
+                detail=f"No playable stream found (audio_only={audio_count})",
+            )
 
         if quality:
             stream_url = next(

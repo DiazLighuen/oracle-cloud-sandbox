@@ -11,9 +11,12 @@ Bot detection avoidance:
 """
 import asyncio
 import json
+import logging
 import os
 
 from fastapi import HTTPException
+
+logger = logging.getLogger(__name__)
 
 _COOKIES_PATH = "/cookies/youtube.txt"
 
@@ -45,8 +48,12 @@ async def get_streams(video_id: str) -> dict:
         raise HTTPException(status_code=502, detail=f"yt-dlp subprocess error: {e}")
 
     if proc.returncode != 0:
-        err = stderr.decode(errors="replace")[:300]
+        err = stderr.decode(errors="replace")[:500]
+        logger.error("yt-dlp failed for %s (exit %d): %s", video_id, proc.returncode, err)
         raise HTTPException(status_code=502, detail=f"yt-dlp: {err}")
+
+    if stderr_text := stderr.decode(errors="replace").strip():
+        logger.warning("yt-dlp stderr for %s: %s", video_id, stderr_text[:300])
 
     try:
         info = json.loads(stdout)
@@ -54,6 +61,15 @@ async def get_streams(video_id: str) -> dict:
         raise HTTPException(status_code=502, detail="yt-dlp returned invalid JSON")
 
     formats = info.get("formats", [])
+    logger.info(
+        "yt-dlp %s: %d total formats (muxed=%d, video_only=%d, audio_only=%d, other=%d)",
+        video_id,
+        len(formats),
+        sum(1 for f in formats if f.get("vcodec","none") != "none" and f.get("acodec","none") != "none"),
+        sum(1 for f in formats if f.get("vcodec","none") != "none" and f.get("acodec","none") == "none"),
+        sum(1 for f in formats if f.get("vcodec","none") == "none" and f.get("acodec","none") != "none"),
+        sum(1 for f in formats if f.get("vcodec","none") == "none" and f.get("acodec","none") == "none"),
+    )
 
     # Combined audio+video — directly playable in <video> / AVPlayer
     format_streams = [
