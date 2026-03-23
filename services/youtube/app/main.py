@@ -145,31 +145,7 @@ async def stream_video(
     stream_url = cache.get(url_cache_key, _STREAM_URL_TTL)
 
     if stream_url is None:
-        streams = await invidious.get_streams(video_id)
-        candidates = streams.get("format_streams", [])
-
-        # Fallback to best video-only stream if no muxed streams available.
-        # YouTube is phasing out muxed streams; video-only is a last resort
-        # (no audio) until a proper mux solution is in place.
-        if not candidates:
-            candidates = [
-                {"url": s["url"], "quality": s.get("quality", ""), "ext": s.get("ext", "")}
-                for s in streams.get("video_streams", [])
-            ]
-        if not candidates:
-            audio_count = len(streams.get("audio_streams", []))
-            raise HTTPException(
-                status_code=404,
-                detail=f"No playable stream found (audio_only={audio_count})",
-            )
-
-        if quality:
-            stream_url = next(
-                (s["url"] for s in candidates if quality in s.get("quality", "")),
-                candidates[0]["url"],
-            )
-        else:
-            stream_url = candidates[0]["url"]
+        stream_url = await invidious.get_stream_url(video_id, quality)
         cache.set(url_cache_key, stream_url)
 
     # Forward Range header so seeking works on the client

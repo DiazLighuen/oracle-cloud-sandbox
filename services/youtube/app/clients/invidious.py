@@ -21,6 +21,82 @@ logger = logging.getLogger(__name__)
 _COOKIES_PATH = "/cookies/youtube.txt"
 
 
+_PERMISSIVE_SELECTOR = "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best"
+
+
+def _format_selector(quality: str | None) -> str:
+    """Build a yt-dlp format selector with quality preference and permissive fallback.
+
+    Chain: quality-restricted (mp4 merge → muxed mp4 → muxed any)
+           → unconstrained permissive fallback (always resolves for available videos).
+    Without ffmpeg the bestvideo+bestaudio legs are skipped automatically.
+    """
+    if quality:
+        import re
+        m = re.match(r"(\d+)", quality)
+        if m:
+            h = m.group(1)
+            return (
+                f"bestvideo[height<={h}][ext=mp4]+bestaudio[ext=m4a]"
+                f"/best[height<={h}][ext=mp4]"
+                f"/best[height<={h}]"
+                f"/{_PERMISSIVE_SELECTOR}"
+            )
+    return _PERMISSIVE_SELECTOR
+
+
+async def get_stream_url(video_id: str, quality: str | None = None) -> str:
+    """Return a single playable URL for video_id using yt-dlp's format selector.
+
+    Uses --get-url so yt-dlp resolves the best available format directly,
+    avoiding the 'Requested format is not available' error that occurs when
+    filtering manually against a stale or incomplete format list.
+    """
+    url = f"https://www.youtube.com/watch?v={video_id}"
+    fmt = _format_selector(quality)
+
+    cmd = [
+        "yt-dlp",
+        "--get-url",
+        "--quiet",
+        "--no-warnings",
+        "-f", fmt,
+        "--extractor-args", "youtube:player_client=ios,android,web",
+    ]
+    if os.path.exists(_COOKIES_PATH):
+        cmd += ["--cookies", _COOKIES_PATH]
+    cmd.append(url)
+
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await proc.communicate()
+    except FileNotFoundError:
+        raise HTTPException(status_code=500, detail="yt-dlp not installed")
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"yt-dlp subprocess error: {e}")
+
+    if proc.returncode != 0:
+        err = stderr.decode(errors="replace")[:500]
+        logger.error("yt-dlp failed for %s (exit %d): %s", video_id, proc.returncode, err)
+        raise HTTPException(status_code=502, detail=f"yt-dlp: {err}")
+
+    if stderr_text := stderr.decode(errors="replace").strip():
+        logger.warning("yt-dlp stderr for %s: %s", video_id, stderr_text[:300])
+
+    # --get-url prints one URL per line; when merging two streams yt-dlp prints
+    # two lines — we only proxy video (first line) in that case.
+    stream_url = stdout.decode().strip().split("\n")[0]
+    if not stream_url:
+        raise HTTPException(status_code=404, detail="No playable stream found")
+
+    logger.info("yt-dlp resolved stream for %s (quality=%s fmt=%s)", video_id, quality, fmt)
+    return stream_url
+
+
 async def get_streams(video_id: str) -> dict:
     url = f"https://www.youtube.com/watch?v={video_id}"
 
