@@ -22,5 +22,14 @@ jobs:
             cd ~/oracle-cloud-sandbox
             git pull origin main
             mkdir -p cookies
-            docker compose up -d --build
-            docker compose exec -T db psql -U $(grep DB_USER .env | cut -d= -f2) $(grep DB_NAME .env | cut -d= -f2) < docker/postgres/migrate.sql
+
+            # Build and start all services using production config only
+            docker compose -f docker-compose.yml up -d --build
+
+            # Restart nginx so it picks up new container IPs after rebuild
+            docker compose -f docker-compose.yml restart nginx
+
+            # Apply pending migrations
+            source .env
+            docker compose -f docker-compose.yml exec -T db \
+              psql -U "$DB_USER" -d "$DB_NAME" -f /docker-entrypoint-initdb.d/02-migrate.sql
