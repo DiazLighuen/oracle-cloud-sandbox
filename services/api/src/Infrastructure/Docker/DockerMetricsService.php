@@ -76,8 +76,10 @@ class DockerMetricsService
 
         // ── Memory ─────────────────────────────────────────────────────────
         $memUsage   = $s['memory_stats']['usage'] ?? 0;
-        // Exclude file cache to get RSS-like value
-        $memCache   = $s['memory_stats']['stats']['cache'] ?? 0;
+        // cgroup v2 uses 'inactive_file'; cgroup v1 uses 'cache'. Subtract
+        // whichever is present to get an RSS-like value (matching docker stats).
+        $stats      = $s['memory_stats']['stats'] ?? [];
+        $memCache   = $stats['inactive_file'] ?? $stats['cache'] ?? 0;
         $memRss     = max(0, $memUsage - $memCache);
         $memLimit   = $s['memory_stats']['limit'] ?? 1;
         $memPct     = $memLimit > 0 ? round(($memRss / $memLimit) * 100, 1) : 0.0;
