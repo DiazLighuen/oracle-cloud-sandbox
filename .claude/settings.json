@@ -14,6 +14,17 @@
     ]
   },
   "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":\"⛔ REGLAS ABSOLUTAS (sin excepciones):\\n1. NUNCA sugerir ni ejecutar git push\\n2. NUNCA sugerir ni ejecutar comandos SSH al servidor\\n3. Antes de cualquier tarea: leer ../contracts/AGENTS.md y ../contracts/index.json\\n4. Antes de sugerir comandos de deploy/build: leer docker-compose.yml — nunca sugerir comandos que ya están definidos ahí\"}}'",
+            "statusMessage": "Cargando reglas del proyecto..."
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Bash",

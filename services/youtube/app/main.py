@@ -5,7 +5,7 @@ from starlette.background import BackgroundTask
 
 from app import cache, cookies, quota
 from app.auth import verify_jwt
-from app.clients import invidious, youtube as yt_client
+from app.clients import ytdlp as invidious, youtube as yt_client
 
 app = FastAPI(title="YouTube Service", docs_url=None, redoc_url=None)
 

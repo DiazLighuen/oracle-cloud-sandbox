@@ -61,6 +61,7 @@ async def get_stream_url(video_id: str, quality: str | None = None) -> str:
         "--get-url",
         "--quiet",
         "--no-warnings",
+        "--js-runtimes", "node",
         "-f", fmt,
         "--extractor-args", "youtube:player_client=ios,android,web",
     ]
@@ -106,6 +107,7 @@ async def get_streams(video_id: str) -> dict:
         "--dump-json",
         "--quiet",
         "--no-warnings",
+        "--js-runtimes", "node",
         "--extractor-args", "youtube:player_client=ios,android,web",
     ]
     if os.path.exists(_COOKIES_PATH):
