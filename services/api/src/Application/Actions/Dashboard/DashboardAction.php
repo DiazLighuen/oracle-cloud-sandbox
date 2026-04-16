@@ -33,6 +33,17 @@ class DashboardAction
         $totalsHtml = $this->buildTotals($metrics, $tr, $ytQuota);
         $cardsHtml  = $this->buildCards($metrics, $tr);
 
+        // Derive module states from already-loaded metrics (fail-open)
+        $moduleYouTube = true;
+        if ($metrics['available']) {
+            foreach ($metrics['containers'] as $c) {
+                if (($c['module'] ?? null) === 'youtube') {
+                    $moduleYouTube = $c['running'];
+                }
+            }
+        }
+        $ytNavHtml = $this->youtubeNavItem($moduleYouTube, false);
+
         $tTitle      = $t('metrics.title');
         $tLogout     = $t('dashboard.logout');
         $tNavDash    = $t('nav.dashboard');
@@ -223,6 +234,18 @@ class DashboardAction
                 /* Divider */
                 .metric-divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
 
+                /* ── Toggle button ────────────────────────────────── */
+                .toggle-btn { display: flex; align-items: center; justify-content: center; gap: 6px;
+                    width: 100%; margin-top: 14px; padding: 7px 12px; border-radius: 8px;
+                    font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500;
+                    cursor: pointer; border: 1px solid; transition: background .2s, border-color .2s, opacity .2s; }
+                .toggle-btn.stop-btn { background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.25); color: var(--red); }
+                .toggle-btn.stop-btn:hover:not(:disabled) { background: rgba(239,68,68,.15); }
+                .toggle-btn.start-btn { background: rgba(34,197,94,.08); border-color: rgba(34,197,94,.25); color: var(--green); }
+                .toggle-btn.start-btn:hover:not(:disabled) { background: rgba(34,197,94,.15); }
+                .toggle-btn.protected-btn { background: var(--surface2); border-color: var(--border); color: var(--dim); cursor: not-allowed; }
+                .toggle-btn:disabled { opacity: .55; cursor: not-allowed; }
+
                 /* Empty / error states */
                 .state-msg { display: flex; flex-direction: column; align-items: center;
                     justify-content: center; padding: 80px 24px; text-align: center; gap: 12px;
@@ -317,13 +340,7 @@ class DashboardAction
                         </svg>
                         {$tNavUsers}
                     </a>
-                    <a href="/youtube" class="nav-item">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/>
-                            <polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02"/>
-                        </svg>
-                        YouTube
-                    </a>
+                    {$ytNavHtml}
                 </nav>
 
                 <div class="sidebar-bottom">
@@ -413,6 +430,30 @@ class DashboardAction
         document.querySelectorAll('.nav-item.active').forEach(function(link) {
             link.addEventListener('click', function(e) { e.preventDefault(); });
         });
+
+        async function toggleContainer(btn, name, action, loadingLabel) {
+            const original = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = loadingLabel;
+            try {
+                const res = await fetch('/api/containers/' + encodeURIComponent(name) + '/' + action, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                });
+                if (res.ok) {
+                    location.reload();
+                } else {
+                    const data = await res.json().catch(function() { return {}; });
+                    console.error('toggleContainer error', data);
+                    btn.disabled = false;
+                    btn.innerHTML = original;
+                }
+            } catch (err) {
+                console.error('toggleContainer fetch error', err);
+                btn.disabled = false;
+                btn.innerHTML = original;
+            }
+        }
         </script>
         </body>
         </html>
@@ -475,6 +516,19 @@ class DashboardAction
             $tRead = $t('metrics.read');
             $tWrt  = $t('metrics.write');
 
+            $controllable = $c['controllable'] ?? false;
+            if (!$controllable) {
+                $toggleBtn = "<button class=\"toggle-btn protected-btn\" disabled>{$t('metrics.protected')}</button>";
+            } elseif ($c['running']) {
+                $tStop = $t('metrics.stop');
+                $tStopping = $t('metrics.stopping');
+                $toggleBtn = "<button class=\"toggle-btn stop-btn\" onclick=\"toggleContainer(this,'{$name}','stop','{$tStopping}')\">{$tStop}</button>";
+            } else {
+                $tStart = $t('metrics.start');
+                $tStarting = $t('metrics.starting');
+                $toggleBtn = "<button class=\"toggle-btn start-btn\" onclick=\"toggleContainer(this,'{$name}','start','{$tStarting}')\">{$tStart}</button>";
+            }
+
             $html .= <<<HTML
             <div class="ccard">
                 <div class="ccard-head">
@@ -527,11 +581,31 @@ class DashboardAction
                     <span class="metric-label">{$tProc}</span>
                     <span class="metric-val">{$pids}</span>
                 </div>
+
+                {$toggleBtn}
             </div>
             HTML;
         }
 
         return $html;
+    }
+
+    /**
+     * Renders the YouTube sidebar nav item, or nothing if the module is stopped.
+     * @param bool $running  whether youtube_svc is running
+     * @param bool $active   whether this is the current page
+     */
+    private function youtubeNavItem(bool $running, bool $active): string
+    {
+        if (!$running) {
+            return '';
+        }
+        $activeClass = $active ? ' active' : '';
+        $svg = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+             . '<path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/>'
+             . '<polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02"/>'
+             . '</svg>';
+        return "<a href=\"/youtube\" class=\"nav-item{$activeClass}\">{$svg} YouTube</a>";
     }
 
     private function barClass(float $pct): string

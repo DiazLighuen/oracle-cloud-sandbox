@@ -6,6 +6,8 @@ namespace App\Infrastructure\Docker;
 class DockerMetricsService
 {
     private const SOCKET     = '/var/run/docker.sock';
+    // Keep in sync with DockerControlService::PROTECTED
+    private const PROTECTED  = DockerControlService::PROTECTED;
     private const CACHE_FILE = '/tmp/docker_metrics_cache.json';
     private const CACHE_TTL  = 10; // seconds — keeps CPU cost near zero on the free tier
 
@@ -104,12 +106,16 @@ class DockerMetricsService
         // ── Container info ─────────────────────────────────────────────────
         $running = ($c['State'] ?? '') === 'running';
 
+        $name = ltrim($c['Names'][0] ?? 'unknown', '/');
+
         return [
-            'id'         => substr($c['Id'] ?? '', 0, 12),
-            'name'       => ltrim($c['Names'][0] ?? 'unknown', '/'),
-            'image'      => $c['Image'] ?? '?',
-            'status'     => $c['Status'] ?? '?',
-            'running'    => $running,
+            'id'           => substr($c['Id'] ?? '', 0, 12),
+            'name'         => $name,
+            'image'        => $c['Image'] ?? '?',
+            'status'       => $c['Status'] ?? '?',
+            'running'      => $running,
+            'controllable' => !in_array($name, self::PROTECTED, true),
+            'module'       => DockerControlService::MODULE_MAP[$name] ?? null,
             'cpu_pct'    => $cpuPct,
             'mem_rss'    => $memRss,
             'mem_limit'  => $memLimit,

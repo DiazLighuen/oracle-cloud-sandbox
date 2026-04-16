@@ -10,6 +10,7 @@ use App\Application\Actions\Auth\GoogleYouTubeCallbackAction;
 use App\Application\Actions\Auth\MobileYouTubeAuthAction;
 use App\Application\Actions\Dashboard\DashboardAction;
 use App\Application\Actions\Dashboard\GetContainersAction;
+use App\Application\Actions\Dashboard\ToggleContainerAction;
 use App\Application\Actions\Dashboard\YouTubeAction;
 use App\Application\Actions\Users\UsersAction;
 use App\Application\Actions\Users\GetUsersAction;
@@ -84,6 +85,7 @@ $app->group('/api/user', function ($group) {
 $app->group('/api', function ($group) {
     $group->get('/dashboard', \App\Application\Actions\Dashboard\GetDashboardAction::class);
     $group->get('/containers', GetContainersAction::class);
+    $group->post('/containers/{name}/{action}', ToggleContainerAction::class);
     $group->get('/users', GetUsersAction::class);
     $group->post('/users', CreateUserAction::class);
     $group->patch('/users/{id}', UpdateUserAction::class);

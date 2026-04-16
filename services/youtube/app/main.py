@@ -5,7 +5,7 @@ from starlette.background import BackgroundTask
 
 from app import cache, cookies, quota
 from app.auth import verify_jwt
-from app.clients import ytdlp as invidious, youtube as yt_client
+from app.clients import ytdlp, youtube as yt_client
 
 app = FastAPI(title="YouTube Service", docs_url=None, redoc_url=None)
 
@@ -122,7 +122,7 @@ async def video_detail(
         cache.set(meta_key, metadata)
 
     # Streams: never cached — URLs expire quickly
-    streams = await invidious.get_streams(video_id)
+    streams = await ytdlp.get_streams(video_id)
     return {**metadata, **streams}
 
 
@@ -145,7 +145,7 @@ async def stream_video(
     stream_url = cache.get(url_cache_key, _STREAM_URL_TTL)
 
     if stream_url is None:
-        stream_url = await invidious.get_stream_url(video_id, quality)
+        stream_url = await ytdlp.get_stream_url(video_id, quality)
         cache.set(url_cache_key, stream_url)
 
     # Forward Range header so seeking works on the client

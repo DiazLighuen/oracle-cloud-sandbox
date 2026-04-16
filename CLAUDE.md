@@ -53,7 +53,7 @@ oracle-cloud-sandbox/
         │   ├── cache.py         # File-based cache /tmp/yt_cache/ with TTL
         │   └── clients/
         │       ├── youtube.py   # YouTube Data API v3 wrapper (subscriptions, feed, search, metadata)
-        │       └── invidious.py # Invidious client — stream URLs only (never cached)
+        │       └── ytdlp.py     # yt-dlp client — extracts stream URLs and formats
         ├── requirements.txt
         └── Dockerfile
 ```
@@ -85,7 +85,7 @@ All endpoints require `Authorization: Bearer <JWT>` + `X-Google-Token: <Google a
 | GET | `/api/youtube/subscriptions?page_token=` | JWT + Google | 1h | User's YouTube channel subscriptions |
 | GET | `/api/youtube/feed?page=1` | JWT + Google | 15min | Recent videos from subscriptions (Shorts excluded) |
 | GET | `/api/youtube/search?q=&type=video\|channel&page_token=` | JWT + Google | 5min | YouTube search |
-| GET | `/api/youtube/video/{id}` | JWT + Google | metadata 1h, streams never | Video metadata + playback streams |
+| GET | `/api/youtube/video/{id}` | JWT + Google | metadata 1h, streams 30min | Video metadata + playback streams |
 | GET | `/api/youtube/health` | No | — | `{"status":"ok"}` |
 
 ## Routes (notifications service)
@@ -135,7 +135,6 @@ Copy `.env.example` → `.env` at the project root.
 | `GOOGLE_REDIRECT_URL` | Callback URL registered in Google Cloud Console |
 | `GOOGLE_IOS_CLIENT_ID` | Google OAuth iOS client ID (for mobile token verification) |
 | `JWT_SECRET` | Shared secret between `api`, `notifications`, and `youtube` |
-| `INVIDIOUS_BASE_URL` | Public Invidious instance URL (e.g. `https://invidious.io.lol`) |
 
 ## Code conventions
 
@@ -156,7 +155,7 @@ Copy `.env.example` → `.env` at the project root.
 - FastAPI with `async def` handlers — all I/O is async (httpx, Google API).
 - Auth: `verify_jwt` dependency validates our JWT; `X-Google-Token` header is passed to YouTube API calls.
 - Cache: file-based in `/tmp/yt_cache/` — MD5-keyed JSON files with timestamp + TTL.
-- Stream URLs from Invidious are **never cached** (they expire).
+- Stream URLs are cached 30 min (`_STREAM_URL_TTL`); yt-dlp is called via subprocess to resolve them.
 - Shorts filtered server-side: ISO 8601 duration parsed, videos < 60s excluded from feed and search results.
 
 ## Database

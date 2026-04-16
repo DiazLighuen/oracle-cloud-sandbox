@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Application\Actions\Dashboard;
 
 use App\Domain\User\UserRepository;
+use App\Infrastructure\Docker\DockerControlService;
 use App\Infrastructure\I18n\PhpTranslator;
 use Google\Client as GoogleClient;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -12,8 +13,9 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 class YouTubeAction
 {
     public function __construct(
-        private UserRepository $users,
-        private GoogleClient   $googleClient
+        private UserRepository       $users,
+        private GoogleClient         $googleClient,
+        private DockerControlService $docker,
     ) {}
 
     public function __invoke(Request $request, Response $response): Response
@@ -57,6 +59,8 @@ class YouTubeAction
         $tokenPreview = $googleAccessToken !== ''
             ? htmlspecialchars(substr($googleAccessToken, 0, 40)) . '…'
             : '(none)';
+
+        $ytNavHtml = $this->youtubeNavItem($this->docker->getModuleStates()['youtube']);
 
         $authBanner = '';
         if ($ytAuth === 'ok') {
@@ -451,13 +455,7 @@ class YouTubeAction
                         </svg>
                         Users
                     </a>
-                    <a href="/youtube" class="nav-item active">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/>
-                            <polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02"/>
-                        </svg>
-                        YouTube
-                    </a>
+                    {$ytNavHtml}
                 </nav>
 
                 <div class="sidebar-bottom">
@@ -1184,5 +1182,17 @@ class YouTubeAction
                  . "<div class=\"{$divClass}\" style=\"display:none\">{$initial}</div>";
         }
         return "<div class=\"{$divClass}\">{$initial}</div>";
+    }
+
+    private function youtubeNavItem(bool $running): string
+    {
+        if (!$running) {
+            return '';
+        }
+        $svg = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+             . '<path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/>'
+             . '<polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02"/>'
+             . '</svg>';
+        return "<a href=\"/youtube\" class=\"nav-item active\">{$svg} YouTube</a>";
     }
 }

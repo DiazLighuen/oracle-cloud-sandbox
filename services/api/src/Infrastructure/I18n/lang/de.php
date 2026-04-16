@@ -63,6 +63,11 @@ return [
     'metrics.stopped'     => 'gestoppt',
     'metrics.no_socket'   => 'Docker-Socket nicht verfügbar. Binde /var/run/docker.sock in den Container ein.',
     'metrics.no_data'     => 'Keine Container gefunden.',
+    'metrics.start'       => 'Starten',
+    'metrics.stop'        => 'Stoppen',
+    'metrics.starting'    => 'Starte…',
+    'metrics.stopping'    => 'Stoppe…',
+    'metrics.protected'   => 'Geschützt',
 
     // Unauthorized
     'error.title'       => 'Zugang verweigert',

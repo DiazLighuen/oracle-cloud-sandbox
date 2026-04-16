@@ -63,6 +63,11 @@ return [
     'metrics.stopped'     => 'detenido',
     'metrics.no_socket'   => 'Docker socket no disponible. Montá /var/run/docker.sock en el contenedor.',
     'metrics.no_data'     => 'No se encontraron contenedores.',
+    'metrics.start'       => 'Iniciar',
+    'metrics.stop'        => 'Detener',
+    'metrics.starting'    => 'Iniciando…',
+    'metrics.stopping'    => 'Deteniendo…',
+    'metrics.protected'   => 'Protegido',
 
     // Unauthorized
     'error.title'       => 'Acceso denegado',

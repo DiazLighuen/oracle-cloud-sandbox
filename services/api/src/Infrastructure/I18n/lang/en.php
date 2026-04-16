@@ -63,6 +63,11 @@ return [
     'metrics.stopped'     => 'stopped',
     'metrics.no_socket'   => 'Docker socket unavailable. Mount /var/run/docker.sock into the container.',
     'metrics.no_data'     => 'No containers found.',
+    'metrics.start'       => 'Start',
+    'metrics.stop'        => 'Stop',
+    'metrics.starting'    => 'Starting…',
+    'metrics.stopping'    => 'Stopping…',
+    'metrics.protected'   => 'Protected',
 
     // Unauthorized
     'error.title'       => 'Access denied',
