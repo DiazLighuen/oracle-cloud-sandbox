@@ -5,3 +5,6 @@ node_modules/
 cookies/
 scripts/upload-cookies.sh
 docker-compose.override.yml
+__pycache__/
+*.pyc
+*.pyo
